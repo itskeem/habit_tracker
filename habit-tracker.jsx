@@ -6,6 +6,8 @@ export default function HabitTracker() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   // Load habits from localStorage
   useEffect(() => {
@@ -54,6 +56,26 @@ export default function HabitTracker() {
 
   const deleteHabit = (habitId) => {
     setHabits(habits.filter(h => h.id !== habitId));
+  };
+
+  const startEditing = (habit) => {
+    setEditingId(habit.id);
+    setEditingName(habit.name);
+  };
+
+  const saveEdit = () => {
+    if (!editingName.trim()) return;
+    
+    setHabits(habits.map(habit => 
+      habit.id === editingId ? { ...habit, name: editingName } : habit
+    ));
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingName('');
   };
 
   const getStreak = (habit) => {
@@ -243,6 +265,12 @@ export default function HabitTracker() {
                 getStreak={getStreak}
                 getLast7Days={getLast7Days}
                 index={index}
+                isEditing={editingId === habit.id}
+                editingName={editingName}
+                onStartEdit={startEditing}
+                onSaveEdit={saveEdit}
+                onCancelEdit={cancelEdit}
+                onEditNameChange={setEditingName}
               />
             ))
           )}
@@ -443,7 +471,7 @@ function StatCard({ icon, label, value, color }) {
   );
 }
 
-function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, index }) {
+function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, index, isEditing, editingName, onStartEdit, onSaveEdit, onCancelEdit, onEditNameChange }) {
   const streak = getStreak(habit);
   const days = getLast7Days();
   const today = new Date().toISOString().split('T')[0];
@@ -471,15 +499,81 @@ function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, index }
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <h3 style={{
-            fontSize: '1.5rem',
-            margin: 0,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: '#fff'
-          }}>
-            {habit.name}
-          </h3>
+          {isEditing ? (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={editingName}
+                onChange={(e) => onEditNameChange(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') onSaveEdit();
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                onBlur={onSaveEdit}
+                autoFocus
+                style={{
+                  fontSize: '1.5rem',
+                  background: '#0a0a0a',
+                  border: '2px solid #00ff88',
+                  color: '#fff',
+                  fontFamily: '"Courier New", monospace',
+                  padding: '0.5rem',
+                  outline: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  flex: 1
+                }}
+              />
+              <button
+                onClick={onSaveEdit}
+                style={{
+                  background: '#00ff88',
+                  border: 'none',
+                  color: '#000',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontFamily: '"Courier New", monospace',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem'
+                }}
+              >
+                SAVE
+              </button>
+              <button
+                onClick={onCancelEdit}
+                style={{
+                  background: 'transparent',
+                  border: '2px solid #666',
+                  color: '#666',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontFamily: '"Courier New", monospace',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem'
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
+          ) : (
+            <h3 
+              onDoubleClick={() => onStartEdit(habit)}
+              style={{
+                fontSize: '1.5rem',
+                margin: 0,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#00ff88'}
+              onMouseLeave={(e) => e.target.style.color = '#fff'}
+              title="Double-click to edit"
+            >
+              {habit.name}
+            </h3>
+          )}
           <div style={{
             display: 'flex',
             alignItems: 'center',
