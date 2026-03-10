@@ -8,6 +8,7 @@ export default function HabitTracker() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
 
   // Load habits from localStorage
   useEffect(() => {
@@ -114,6 +115,64 @@ export default function HabitTracker() {
     return days;
   };
 
+  const getMonthDays = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    // First day of the month
+    const firstDay = new Date(year, month, 1);
+    // Last day of the month
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Get the day of week for first day (0 = Sunday)
+    const firstDayOfWeek = firstDay.getDay();
+    
+    const days = [];
+    
+    // Add days from previous month to fill the first week
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, month, -i);
+      days.push({
+        date: date.toISOString().split('T')[0],
+        day: date.getDate(),
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    // Add all days of current month
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(year, month, day);
+      const dateStr = date.toISOString().split('T')[0];
+      const todayStr = today.toISOString().split('T')[0];
+      
+      days.push({
+        date: dateStr,
+        day: day,
+        isCurrentMonth: true,
+        isToday: dateStr === todayStr
+      });
+    }
+    
+    // Add days from next month to complete the grid
+    const remainingDays = 42 - days.length; // 6 rows * 7 days
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      days.push({
+        date: date.toISOString().split('T')[0],
+        day: date.getDate(),
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    return {
+      days,
+      monthName: today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    };
+  };
+
   const totalCompletions = habits.reduce((sum, habit) => 
     sum + Object.keys(habit.completions).length, 0
   );
@@ -208,38 +267,84 @@ export default function HabitTracker() {
         </div>
 
         {/* Add Habit Button */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{
-            background: 'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)',
-            border: 'none',
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            fontFamily: '"Courier New", monospace',
-            color: '#000',
-            cursor: 'pointer',
-            marginBottom: '2rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            boxShadow: '0 8px 32px rgba(0, 255, 136, 0.3)',
-            transition: 'all 0.3s ease',
-            animation: 'fadeIn 1s ease-out 0.4s both',
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)',
+              border: 'none',
+              padding: '1rem 2rem',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              fontFamily: '"Courier New", monospace',
+              color: '#000',
+              cursor: 'pointer',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              boxShadow: '0 8px 32px rgba(0, 255, 136, 0.3)',
+              transition: 'all 0.3s ease',
+              animation: 'fadeIn 1s ease-out 0.4s both',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 12px 40px rgba(0, 255, 136, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 8px 32px rgba(0, 255, 136, 0.3)';
+            }}
+          >
+            <Plus size={20} /> NEW HABIT
+          </button>
+
+          {/* View Mode Toggle */}
+          <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 12px 40px rgba(0, 255, 136, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 8px 32px rgba(0, 255, 136, 0.3)';
-          }}
-        >
-          <Plus size={20} /> NEW HABIT
-        </button>
+            border: '2px solid #333',
+            animation: 'fadeIn 1s ease-out 0.4s both'
+          }}>
+            <button
+              onClick={() => setViewMode('week')}
+              style={{
+                background: viewMode === 'week' ? '#00ff88' : 'transparent',
+                border: 'none',
+                padding: '1rem 1.5rem',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                fontFamily: '"Courier New", monospace',
+                color: viewMode === 'week' ? '#000' : '#888',
+                cursor: 'pointer',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              7 DAYS
+            </button>
+            <button
+              onClick={() => setViewMode('month')}
+              style={{
+                background: viewMode === 'month' ? '#00ff88' : 'transparent',
+                border: 'none',
+                borderLeft: '2px solid #333',
+                padding: '1rem 1.5rem',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                fontFamily: '"Courier New", monospace',
+                color: viewMode === 'month' ? '#000' : '#888',
+                cursor: 'pointer',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              MONTH
+            </button>
+          </div>
+        </div>
 
         {/* Habits List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -264,6 +369,8 @@ export default function HabitTracker() {
                 onDelete={deleteHabit}
                 getStreak={getStreak}
                 getLast7Days={getLast7Days}
+                getMonthDays={getMonthDays}
+                viewMode={viewMode}
                 index={index}
                 isEditing={editingId === habit.id}
                 editingName={editingName}
@@ -471,9 +578,10 @@ function StatCard({ icon, label, value, color }) {
   );
 }
 
-function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, index, isEditing, editingName, onStartEdit, onSaveEdit, onCancelEdit, onEditNameChange }) {
+function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, getMonthDays, viewMode, index, isEditing, editingName, onStartEdit, onSaveEdit, onCancelEdit, onEditNameChange }) {
   const streak = getStreak(habit);
   const days = getLast7Days();
+  const monthData = getMonthDays();
   const today = new Date().toISOString().split('T')[0];
   const isCompletedToday = habit.completions[today];
 
@@ -604,55 +712,140 @@ function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, index, 
         </button>
       </div>
 
-      {/* 7-day visualization */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        {days.map((day) => (
-          <div
-            key={day.date}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.25rem'
-            }}
-          >
-            <div style={{
-              fontSize: '0.7rem',
-              color: day.isToday ? '#00ff88' : '#666',
-              fontWeight: day.isToday ? 'bold' : 'normal'
-            }}>
-              {day.label}
-            </div>
-            <div style={{
-              width: '100%',
-              height: '40px',
-              background: habit.completions[day.date] ? 
-                'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)' : 
-                'rgba(255, 255, 255, 0.1)',
-              border: day.isToday ? '2px solid #00ff88' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              if (!habit.completions[day.date]) {
-                e.target.style.background = 'rgba(0, 255, 136, 0.2)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!habit.completions[day.date]) {
-                e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-              }
-            }}
+      {/* Calendar visualization - Week or Month */}
+      {viewMode === 'week' ? (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {days.map((day) => (
+            <div
+              key={day.date}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
             >
-              {habit.completions[day.date] && <Check size={20} color="#000" />}
+              <div style={{
+                fontSize: '0.7rem',
+                color: day.isToday ? '#00ff88' : '#666',
+                fontWeight: day.isToday ? 'bold' : 'normal'
+              }}>
+                {day.label}
+              </div>
+              <div style={{
+                width: '100%',
+                height: '40px',
+                background: habit.completions[day.date] ? 
+                  'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)' : 
+                  'rgba(255, 255, 255, 0.1)',
+                border: day.isToday ? '2px solid #00ff88' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                if (!habit.completions[day.date]) {
+                  e.target.style.background = 'rgba(0, 255, 136, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!habit.completions[day.date]) {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              >
+                {habit.completions[day.date] && <Check size={20} color="#000" />}
+              </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div>
+          <div style={{
+            fontSize: '0.9rem',
+            color: '#00ff88',
+            marginBottom: '0.75rem',
+            letterSpacing: '0.1em',
+            fontWeight: 'bold'
+          }}>
+            {monthData.monthName}
           </div>
-        ))}
-      </div>
+          
+          {/* Day headers */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '0.25rem',
+            marginBottom: '0.25rem'
+          }}>
+            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+              <div key={day} style={{
+                fontSize: '0.6rem',
+                color: '#666',
+                textAlign: 'center',
+                padding: '0.25rem'
+              }}>
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '0.25rem'
+          }}>
+            {monthData.days.map((day, idx) => (
+              <div
+                key={idx}
+                style={{
+                  aspectRatio: '1',
+                  background: habit.completions[day.date] ?
+                    'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)' :
+                    'rgba(255, 255, 255, 0.1)',
+                  border: day.isToday ? '2px solid #00ff88' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                  color: day.isCurrentMonth ? '#fff' : '#444',
+                  opacity: day.isCurrentMonth ? 1 : 0.4,
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  if (!habit.completions[day.date]) {
+                    e.currentTarget.style.background = 'rgba(0, 255, 136, 0.2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!habit.completions[day.date]) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }
+                }}
+              >
+                <span style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: '2px',
+                  fontSize: '0.65rem',
+                  fontWeight: day.isToday ? 'bold' : 'normal'
+                }}>
+                  {day.day}
+                </span>
+                {habit.completions[day.date] && (
+                  <Check size={12} color={habit.completions[day.date] ? '#000' : '#666'} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Complete today button */}
       <button
