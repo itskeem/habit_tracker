@@ -8,7 +8,7 @@ export default function HabitTracker() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
+  const [viewMode, setViewMode] = useState('week'); 
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Check if all habits are completed today
@@ -20,7 +20,7 @@ export default function HabitTracker() {
     
     if (allComplete && !showConfetti) {
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000); // Hide after 5 seconds
+      setTimeout(() => setShowConfetti(false), 5000); 
     }
   }, [habits]);
 
