@@ -139,7 +139,7 @@ export default function HabitTracker() {
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
-    // Get the day of week for first day (0 = Sunday)
+    // Get the day of week 
     const firstDayOfWeek = firstDay.getDay();
     
     const days = [];
