@@ -11,7 +11,7 @@ export default function HabitTracker() {
   const [viewMode, setViewMode] = useState('week'); 
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Check if all habits are completed today
+  // Check if all habits are completed 
   useEffect(() => {
     if (habits.length === 0) return;
     
