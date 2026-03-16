@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Check, Flame, Calendar, TrendingUp, X } from 'lucide-react';
+import { Plus, Check, Flame, Calendar, TrendingUp, X, GripVertical } from 'lucide-react';
 
 export default function HabitTracker() {
   const [habits, setHabits] = useState([]);
@@ -8,10 +8,11 @@ export default function HabitTracker() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [viewMode, setViewMode] = useState('week'); 
+  const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
   const [showConfetti, setShowConfetti] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
-  // Check if all habits are completed 
+  // Check if all habits are completed today
   useEffect(() => {
     if (habits.length === 0) return;
     
@@ -20,7 +21,7 @@ export default function HabitTracker() {
     
     if (allComplete && !showConfetti) {
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000); 
+      setTimeout(() => setShowConfetti(false), 5000); // Hide after 5 seconds
     }
   }, [habits]);
 
@@ -93,6 +94,32 @@ export default function HabitTracker() {
     setEditingName('');
   };
 
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    // Reorder the array
+    const newHabits = [...habits];
+    const draggedItem = newHabits[draggedIndex];
+    
+    // Remove from old position
+    newHabits.splice(draggedIndex, 1);
+    // Insert at new position
+    newHabits.splice(index, 0, draggedItem);
+    
+    setHabits(newHabits);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   const getStreak = (habit) => {
     let streak = 0;
     const today = new Date();
@@ -139,7 +166,7 @@ export default function HabitTracker() {
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
-    // Get the day of week 
+    // Get the day of week for first day (0 = Sunday)
     const firstDayOfWeek = firstDay.getDay();
     
     const days = [];
@@ -395,6 +422,10 @@ export default function HabitTracker() {
                 onSaveEdit={saveEdit}
                 onCancelEdit={cancelEdit}
                 onEditNameChange={setEditingName}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                isDragging={draggedIndex === index}
               />
             ))
           )}
@@ -705,7 +736,7 @@ function StatCard({ icon, label, value, color, highlight = false }) {
   );
 }
 
-function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, getMonthDays, viewMode, index, isEditing, editingName, onStartEdit, onSaveEdit, onCancelEdit, onEditNameChange }) {
+function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, getMonthDays, viewMode, index, isEditing, editingName, onStartEdit, onSaveEdit, onCancelEdit, onEditNameChange, onDragStart, onDragOver, onDragEnd, isDragging }) {
   const streak = getStreak(habit);
   const days = getLast7Days();
   const monthData = getMonthDays();
@@ -713,26 +744,53 @@ function HabitCard({ habit, onToggle, onDelete, getStreak, getLast7Days, getMont
   const isCompletedToday = habit.completions[today];
 
   return (
-    <div style={{
-      background: 'rgba(255, 255, 255, 0.03)',
-      border: '2px solid #333',
-      padding: '1.5rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1rem',
-      transition: 'all 0.3s ease',
-      animation: `fadeIn 0.5s ease-out ${0.6 + index * 0.1}s both`
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.borderColor = '#00ff88';
-      e.currentTarget.style.background = 'rgba(0, 255, 136, 0.05)';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.borderColor = '#333';
-      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-    }}
+    <div 
+      draggable
+      onDragStart={() => onDragStart(index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDragEnd={onDragEnd}
+      style={{
+        background: isDragging ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+        border: isDragging ? '2px solid #00ff88' : '2px solid #333',
+        padding: '1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        transition: 'all 0.3s ease',
+        animation: `fadeIn 0.5s ease-out ${0.6 + index * 0.1}s both`,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: 'move',
+        transform: isDragging ? 'scale(1.02)' : 'scale(1)'
+      }}
+      onMouseEnter={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.borderColor = '#00ff88';
+          e.currentTarget.style.background = 'rgba(0, 255, 136, 0.05)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.borderColor = '#333';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+        }
+      }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+        {/* Drag Handle */}
+        <div style={{
+          color: '#666',
+          cursor: 'move',
+          padding: '0.25rem',
+          transition: 'color 0.2s ease',
+          marginTop: '0.25rem'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#00ff88'}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
+        title="Drag to reorder"
+        >
+          <GripVertical size={20} />
+        </div>
+
         <div style={{ flex: 1 }}>
           {isEditing ? (
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
